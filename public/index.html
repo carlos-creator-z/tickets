@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinema 11-5 - Sistema de Tickets</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🎟️ Cinema 11-5</h1>
+            <p>Sistema de Gestión de Tickets</p>
+        </header>
+
+        <!-- LOGIN ADMIN -->
+        <div id="adminBox" class="card" style="margin-bottom: 20px;">
+            <div id="adminLoginForm">
+                <h2>🔒 Acceso Administrador</h2>
+                <p>Inicia sesión para generar y ver boletas.</p>
+                <input type="text" id="adminUser" placeholder="Usuario (admin)" style="width: 100%; margin-bottom: 10px; padding: 10px; background: #333; color: #fff; border: 1px solid #555; border-radius: 5px;">
+                <input type="password" id="adminPass" placeholder="Contraseña" style="width: 100%; margin-bottom: 15px; padding: 10px; background: #333; color: #fff; border: 1px solid #555; border-radius: 5px;">
+                <button class="btn-primary" onclick="loginAdmin()">Iniciar Sesión</button>
+                <div id="adminLoginMsg" class="message"></div>
+            </div>
+            <div id="adminLoggedIn" style="display:none; text-align: center;">
+                <h2>🟢 Sesión Administrador</h2>
+                <p>Puedes usar las funciones de generar y listar.</p>
+                <button class="btn-danger" onclick="logoutAdmin()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('generate', event)">Generar Lote</button>
+            <button class="tab-btn" onclick="switchTab('validate', event)">Validar</button>
+            <button class="tab-btn" onclick="switchTab('list', event)">Ver Boletas</button>
+            <button class="tab-btn" onclick="switchTab('pdf', event)">Descargar PDF</button>
+        </div>
+
+        <!-- GENERAR LOTE -->
+        <section id="generate" class="tab-content active">
+            <div class="card">
+                <h2>Generar Boletas</h2>
+                <p>Define el rango de boletas a generar (Ej: 0000 a 0099).</p>
+                
+                <div class="radio-group">
+                    <label><input type="radio" name="tipo" value="ticket1" checked> Ticket 1</label>
+                    <label><input type="radio" name="tipo" value="ticket2"> Ticket 2</label>
+                </div>
+
+                <div class="radio-group">
+                    <input type="text" id="desdeGen" placeholder="Desde (0000)" maxlength="4">
+                    <input type="text" id="hastaGen" placeholder="Hasta (0005)" maxlength="4">
+                </div>
+
+                <button id="btnGenerate" class="btn-primary" onclick="generateBatch()">Generar Boletas</button>
+                <div id="genMessage" class="message"></div>
+            </div>
+        </section>
+
+        <!-- VALIDAR -->
+        <section id="validate" class="tab-content">
+            <div class="card">
+                <h2>Escanear Ticket</h2>
+                <p>Apunta la cámara al código QR.</p>
+                <div id="reader" class="camera-view"></div>
+                <div class="scanner-controls">
+                    <button id="btnStartScan" class="btn-primary" onclick="startScanner()">Iniciar Cámara</button>
+                    <button id="btnStopScan" class="btn-danger" onclick="stopScanner()" style="display: none;">Detener</button>
+                </div>
+                <div id="valMessage" class="message"></div>
+                <button id="btnScanAgain" class="btn-secondary" onclick="startScanner()" style="display: none;">Escanear Otro</button>
+            </div>
+        </section>
+
+        <!-- VER BOLETAS -->
+        <section id="list" class="tab-content">
+            <div class="card">
+                <h2>Estado de Boletas</h2>
+                <p>Carga todas las boletas generadas en el sistema.</p>
+                <button class="btn-primary" onclick="fetchTickets()">Cargar Boletas</button>
+                <div id="listMessage" class="message"></div>
+            </div>
+            <div id="ticketsTableContainer" style="display:none;">
+                <table class="tickets-table">
+                    <thead>
+                        <tr>
+                            <th>Serial</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Usado En</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PDF -->
+        <section id="pdf" class="tab-content">
+            <div class="card" style="border-top: 2px solid #e50914;">
+                <h2>Descargar Lote en PDF</h2>
+                <p>Descarga un PDF con los tickets generados.</p>
+                <div class="radio-group">
+                    <input type="text" id="desdePdf" placeholder="Desde (0000)" maxlength="4">
+                    <input type="text" id="hastaPdf" placeholder="Hasta (0099)" maxlength="4">
+                </div>
+                <button class="btn-primary" onclick="downloadPdf()">Descargar PDF</button>
+                <div id="pdfMessage" class="message"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
