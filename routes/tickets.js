@@ -181,6 +181,9 @@ router.get('/all', authAdmin, async (req, res) => {
 // POST /api/tickets/generate-batch (protegido admin)
 // Body: { "desde": "0000", "hasta": "0099", "tipo": "ticket2" }
 // =============================================
+// =============================================
+// POST /api/tickets/generate-batch (protegido admin)
+// =============================================
 router.post('/generate-batch', authAdmin, async (req, res) => {
   try {
     const { desde, hasta, tipo = 'ticket1' } = req.body;
@@ -211,15 +214,24 @@ router.post('/generate-batch', authAdmin, async (req, res) => {
     const resultados = [];
     for (const serial of seriales) {
       try {
-        // Pasamos el tipo al helper de generación
+        // Generamos el ticket en la base de datos y en la carpeta output
         const t = await createTicketForSerial(serial, tipo);
-        resultados.push(t);
+        
+        // PERO: Solo guardamos los datos básicos en el array de resultado, 
+        // NO guardamos la imagenBase64 para no saturar la memoria de Node.js
+        resultados.push({
+          serial: t.serial,
+          uuid: t.uuid,
+          tipo: t.tipo,
+          mensaje: 'Generado correctamente'
+        });
       } catch (err) {
         console.error(`Error generando ticket ${serial}:`, err.message);
         resultados.push({ serial, error: true, mensaje: `No se pudo generar: ${err.message}` });
       }
     }
 
+    // Ahora esta respuesta será ligera y no causará el error "Invalid string length"
     return res.status(201).json({
       total: resultados.length,
       tickets: resultados

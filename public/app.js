@@ -163,9 +163,8 @@ async function fetchTickets() {
         tableContainer.style.display = 'none';
     }
 }
-
 // =============================================
-// Validar con Cámara
+// Validar con Cámara (Corregida)
 // =============================================
 function startScanner() {
     const valMessage = document.getElementById('valMessage');
@@ -176,9 +175,14 @@ function startScanner() {
     document.getElementById('btnStopScan').style.display = 'block';
 
     html5QrCode = new Html5Qrcode("reader");
+    
+    // Usamos la configuración estándar que funcionaba en Opera
     html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { facingMode: "environment" }, 
+        { 
+            fps: 15, 
+            qrbox: { width: 180, height: 180 } // Mantenemos la caja pequeña para QR pequeños
+        },
         onScanSuccess,
         () => {}
     ).catch(err => {
