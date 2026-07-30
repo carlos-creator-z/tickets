@@ -2,42 +2,59 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
+const { generateQRBuffer } = require('./generateQR');
+const { buildTicketImage } = require('./buildTicket');
+
 /**
  * Genera un PDF en streaming con las imágenes de los tickets solicitados.
- * @param {Array} tickets - Array de documentos de MongoDB (deben tener 'serial')
- * @param {object} res - Objeto response de Express para hacer el stream
+ * Si la imagen no existe en /output, la regenera en memoria al vuelo.
+ * @param {Array} tickets - Array de documentos de MongoDB
+ * @param {object} res - Objeto response de Express
  */
-function generateTicketsPdf(tickets, res) {
-  return new Promise((resolve, reject) => {
+async function generateTicketsPdf(tickets, res) {
+  return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({ autoFirstPage: false });
       
-      // Configurar headers para que el navegador lo descargue
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename=tickets-cinema-115.pdf');
 
-      // Pipe del PDF directamente a la respuesta HTTP
       doc.pipe(res);
 
-      tickets.forEach((ticket) => {
-        const imgPath = path.join(__dirname, `../output/ticket-${ticket.serial}.png`);
-        
-        if (fs.existsSync(imgPath)) {
-          const img = doc.openImage(imgPath);
-          // Ajusta el tamaño de la página al de la imagen del ticket
+      for (const ticket of tickets) {
+        try {
+          let imgBuffer;
+          const imgPath = path.join(__dirname, `../output/ticket-${ticket.serial}.png`);
+          
+          // 1. Si la imagen existe en la carpeta output, la leemos del disco
+          if (fs.existsSync(imgPath)) {
+            imgBuffer = fs.readFileSync(imgPath);
+          } else {
+            // 2. SI NO EXISTE, la regeneramos en memoria usando los datos de la BD
+            console.log(`⚠️ Imagen ${ticket.serial} no encontrada. Regenerando en memoria...`);
+            const qrBuffer = await generateQRBuffer(ticket.jwtToken, { width: 220 });
+            const result = await buildTicketImage({ 
+                serial: ticket.serial, 
+                qrBuffer, 
+                tipo: ticket.tipo 
+            });
+            imgBuffer = result.buffer;
+          }
+
+          // 3. Agregamos la imagen al PDF
+          const img = doc.openImage(imgBuffer);
           doc.addPage({ size: [img.width, img.height] });
           doc.image(img, 0, 0);
-        } else {
-          // Si por alguna razón no existe el PNG, añadimos una página en blanco con texto
-          doc.addPage();
-          doc.fontSize(20).text(`Ticket ${ticket.serial}: Imagen no encontrada`, 100, 100);
-        }
-      });
 
-      // Finalizar el PDF
+        } catch (err) {
+          console.error(`Error procesando ticket ${ticket.serial} para PDF:`, err);
+          // Si falla uno, ponemos una página en blanco con texto para no romper todo el PDF
+          doc.addPage();
+          doc.fontSize(20).text(`Error al generar ticket ${ticket.serial}`, 100, 100);
+        }
+      }
+
       doc.end();
-      
-      // El response se cierra automáticamente cuando el stream termina
       doc.on('end', () => resolve());
       doc.on('error', (err) => reject(err));
 
